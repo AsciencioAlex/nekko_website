@@ -4,20 +4,29 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 import './App.css';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = 'http://localhost:5000';  
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [conversationContext, setConversationContext] = useState("");
+  const [isCollectingLead, setIsCollectingLead] = useState(false);
+  const [leadStep, setLeadStep] = useState(0);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    painPoints: ""
+  });
+  const [isGreetingSent, setIsGreetingSent] = useState(false); // Track if greeting is sent
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Initialize conversation
-    if (messages.length === 0) {
+    if (!isGreetingSent && messages.length === 0) {
       addBotMessage("Hello! I'm Nekko BhAI. How can I help you today?");
+      setIsGreetingSent(true);  // Mark greeting as sent
     }
-  }, []);
+  }, [messages, isGreetingSent]);
 
   useEffect(() => {
     scrollToBottom();
@@ -28,9 +37,13 @@ function App() {
   };
 
   const addBotMessage = (text) => {
+    const formattedText = text.split('\n').map((line, index) => (
+      <p key={index}>{line}</p>
+    ));
+    
     setMessages(prev => [...prev, {
       sender: 'bot',
-      text: text,
+      text: formattedText,
       time: new Date().toLocaleTimeString()
     }]);
   };
@@ -38,7 +51,11 @@ function App() {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
-    // Add user message
+    if (isCollectingLead) {
+      const field = ['name', 'phone', 'email', 'painPoints'][leadStep];
+      setFormData(prev => ({ ...prev, [field]: input }));
+    }
+
     const userMessage = {
       sender: 'user',
       text: input,
@@ -50,18 +67,29 @@ function App() {
 
     try {
       const response = await axios.post(`${API_URL}/chat`, {
-        user_input: input,
-        conversation_context: conversationContext
+        user_query: input,
       });
 
-      const botResponse = response.data.bot_response;
-      setConversationContext(response.data.updated_context);
+      const botResponse = response.data.reply;
       
-      addBotMessage(botResponse);
+      const combinedResponse = botResponse;
+      const formattedResponse = combinedResponse.split('\n').map((line, index) => (
+        <p key={index}>{line}</p>
+      ));
 
-      // Check if we need to collect lead information
+      setMessages(prev => [...prev, {
+        sender: 'bot',
+        text: formattedResponse,
+        time: new Date().toLocaleTimeString()
+      }]);
+
       if (response.data.requires_lead_info) {
-        promptForLeadInfo();
+        setIsCollectingLead(true);
+        setLeadStep(0);
+      }
+
+      if (isCollectingLead) {
+        handleLeadCollection();
       }
 
     } catch (error) {
@@ -70,17 +98,34 @@ function App() {
     }
   };
 
-  const promptForLeadInfo = () => {
-    const questions = [
-      "May I have your name please?",
-      "Could you share your phone number?",
-      "What's your email address? (optional)",
-      "Any specific pain points or challenges you'd like to share?"
-    ];
+  const handleLeadCollection = () => {
+    if (leadStep === 0 && formData.name) {
+      setLeadStep(prev => prev + 1); // Skip to phone number question
+    }
 
-    questions.forEach((question, index) => {
-      setTimeout(() => addBotMessage(question), (index + 1) * 1000);
-    });
+    if (leadStep === 1 && formData.phone) {
+      setLeadStep(prev => prev + 1); // Skip to email question
+    }
+
+    if (leadStep === 2 && !formData.email) {
+      setFormData(prev => ({ ...prev, email: input }));
+      setLeadStep(prev => prev + 1);
+    } else if (leadStep === 3 && !formData.painPoints) {
+      setFormData(prev => ({ ...prev, painPoints: input }));
+      setIsCollectingLead(false);
+      setLeadStep(0);
+      submitLead();
+    }
+  };
+
+  const submitLead = async () => {
+    try {
+      await axios.post(`${API_URL}/submit_lead`, formData);
+      addBotMessage("Thank you! We'll contact you shortly.");
+    } catch (error) {
+      console.error('Error submitting lead:', error);
+      addBotMessage("Failed to save your details. Please try again later.");
+    }
   };
 
   const handleInputChange = (e) => setInput(e.target.value);
@@ -112,7 +157,7 @@ function App() {
                      alt={`${msg.sender} avatar`}
                      className="avatar" />
                 <div className={`message-bubble ${msg.sender}`}>
-                  <p>{msg.text}</p>
+                  <div>{msg.text}</div>
                   <span className="timestamp">{msg.time}</span>
                 </div>
               </div>

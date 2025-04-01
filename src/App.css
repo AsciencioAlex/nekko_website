@@ -98,6 +98,31 @@ body {
   border-bottom-right-radius: 0;
 }
 
+/* New Structured Formatting Styles */
+.message-bubble.bot strong {
+  font-weight: 600;
+  color: #190452;
+}
+
+.response-heading {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 15px 0 10px 0;
+  color: #2c3e50;
+}
+
+.response-list {
+  padding-left: 25px;
+  margin: 10px 0;
+}
+
+.response-list li {
+  list-style-type: disc;
+  margin: 8px 0;
+  line-height: 1.4;
+  color: #555;
+}
+
 .timestamp {
   display: block;
   font-size: 0.8em;
@@ -165,38 +190,6 @@ body {
   background-color: #388e3c;
 }
 
-/* Form Styling (For lead collection) */
-.user-form {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 10px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-group label {
-  font-size: 14px;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: 12px;
-  font-size: 14px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background-color: #f5f6fa;
-  margin-bottom: 10px;
-  transition: border-color 0.3s ease;
-}
-
 /* Responsive Design (Maintained original breakpoints) */
 @media (max-width: 400px) {
   .chat-container {
@@ -214,9 +207,13 @@ body {
   .message-bubble {
     max-width: 80%;
   }
+
+  .response-list {
+    padding-left: 20px;
+  }
 }
 
-/* New Additions for Conversation Flow */
+/* Scrollbar Styling */
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -232,4 +229,9 @@ body {
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Removed old bullet point styles */
+.message-bubble.bot p::before {
+  content: none;
 }
